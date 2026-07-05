@@ -866,7 +866,6 @@ class Quark:
         if updated_tree.size(1) > 0:
             self.do_rename(updated_tree)
             print()
-            add_notify(f"✅《{task['taskname']}》添加追更：\n{updated_tree}")
             return updated_tree
         else:
             print(f"任务结束：没有新的转存任务")
@@ -1232,20 +1231,42 @@ def do_save(account, tasklist=[]):
             # 调用插件
             if is_new_tree:
                 print(f"🧩 调用插件")
+                # 收集执行结果用于通知
+                save_count = is_new_tree.size(1) - 1  # 减1去掉根节点
+                results = [f"✅ 转存成功：{save_count}个新文件"]
                 active_plugins = [
                     (name, p) for name, p in plugins.items()
                     if plugin_enabled(name, p) and hasattr(p, "run")
                 ]
                 for idx, (plugin_name, plugin) in enumerate(active_plugins):
-                    task = (
-                        plugin.run(task, account=account, tree=is_new_tree) or task
-                    )
+                    try:
+                        task = (
+                            plugin.run(task, account=account, tree=is_new_tree) or task
+                        )
+                        results.append(f"✅ {plugin_name} 刷新成功")
+                    except Exception as e:
+                        results.append(f"❌ {plugin_name} 失败：{e}")
+                        print(f"插件 {plugin_name} 执行异常: {e}")
                     # 插件间延时：读取插件全局配置中的 delay（秒），默认0
                     plugin_config = CONFIG_DATA.get("plugins", {}).get(plugin_name, {})
                     delay = int(plugin_config.get("delay", 0))
                     if delay > 0 and idx < len(active_plugins) - 1:
                         print(f"⏳ 等待 {delay}s 后执行下一个插件...")
                         time.sleep(delay)
+                # 构建通知
+                notify_lines = [
+                    "夸克自动转存",
+                    "",
+                    f"📺 追更通知",
+                    "",
+                    f"任务名：{task['taskname']}",
+                    f"保存路径：{task['savepath']}",
+                    "",
+                ]
+                notify_lines.extend(results)
+                notify_lines.append("")
+                notify_lines.append(f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                add_notify("\n".join(notify_lines))
     print()
     print(f"===============插件收尾===============")
     for plugin_name, plugin in plugins.items():
@@ -1272,7 +1293,8 @@ def main():
         CONFIG_DATA["push_config"] = json.loads(os.environ.get("PUSH_CONFIG"))
         send_ql_notify(
             "【夸克自动转存】",
-            f"通知测试\n\n{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "夸克自动转存\n\n📺 追更通知\n\n任务名：测试任务\n保存路径：/测试/路径\n\n✅ 转存成功：3个新文件\n✅ alist 刷新成功\n✅ emby 刷新成功\n\n⏰ "
+            + datetime.now().strftime("%Y-%m-%d %H:%M"),
         )
         print()
         if cookies := json.loads(os.environ.get("COOKIE", "[]")):

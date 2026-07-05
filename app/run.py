@@ -577,9 +577,12 @@ def add_task():
 
 
 # 定时任务执行的函数
-def run_python(args):
+def run_python(args, tasklist=None):
     logging.info(f">>> 定时运行任务")
     try:
+        run_env = os.environ.copy()
+        if tasklist is not None:
+            run_env["TASKLIST"] = json.dumps(tasklist, ensure_ascii=False)
         result = subprocess.run(
             f"{PYTHON_PATH} {args}",
             shell=True,
@@ -588,6 +591,7 @@ def run_python(args):
             text=True,
             encoding="utf-8",
             errors="replace",
+            env=run_env,
         )
         # 输出执行日志
         if result.stdout:
@@ -613,35 +617,70 @@ def run_python(args):
 
 # 重新加载任务
 def reload_tasks():
-    # 读取定时规则
-    if crontab := config_data.get("crontab"):
-        if scheduler.state == 1:
-            scheduler.pause()  # 暂停调度器
-        trigger = CronTrigger.from_crontab(crontab)
-        scheduler.remove_all_jobs()
+    # 读取全局定时规则
+    global_crontab = config_data.get("crontab")
+    if not global_crontab:
+        logging.info(">>> no crontab")
+        return False
+
+    if scheduler.state == 1:
+        scheduler.pause()  # 暂停调度器
+    scheduler.remove_all_jobs()
+
+    tasklist = config_data.get("tasklist", [])
+    # 收集走全局定时规则的任务(未配置单独 crontab)
+    global_tasks = []
+    for index, task in enumerate(tasklist):
+        task_crontab = task.get("crontab")
+        if task_crontab:
+            # 该任务配置了单独的定时规则，注册独立 job
+            try:
+                trigger = CronTrigger.from_crontab(task_crontab)
+            except Exception as e:
+                logging.error(
+                    f"任务[{task.get('taskname', index)}]定时规则[{task_crontab}]无效，跳过: {e}"
+                )
+                global_tasks.append(task)
+                continue
+            scheduler.add_job(
+                run_python,
+                trigger=trigger,
+                args=[f"{SCRIPT_PATH} {CONFIG_PATH}"],
+                kwargs={"tasklist": [task]},
+                id=f"{SCRIPT_PATH}#{index}",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=300,
+                replace_existing=True,
+            )
+        else:
+            global_tasks.append(task)
+
+    # 未配置单独定时规则的任务走全局定时规则
+    if global_tasks:
+        trigger = CronTrigger.from_crontab(global_crontab)
         scheduler.add_job(
             run_python,
             trigger=trigger,
             args=[f"{SCRIPT_PATH} {CONFIG_PATH}"],
+            kwargs={"tasklist": global_tasks},
             id=SCRIPT_PATH,
             max_instances=1,  # 最多允许1个实例运行
             coalesce=True,  # 合并错过的任务，避免堆积
             misfire_grace_time=300,  # 错过任务的宽限期(秒)，超过则跳过
             replace_existing=True,  # 替换已存在的同ID任务
         )
-        if scheduler.state == 0:
-            scheduler.start()
-        elif scheduler.state == 2:
-            scheduler.resume()
-        scheduler_state_map = {0: "停止", 1: "运行", 2: "暂停"}
-        logging.info(">>> 重载调度器")
-        logging.info(f"调度状态: {scheduler_state_map[scheduler.state]}")
-        logging.info(f"定时规则: {crontab}")
-        logging.info(f"现有任务: {scheduler.get_jobs()}")
-        return True
-    else:
-        logging.info(">>> no crontab")
-        return False
+
+    if scheduler.state == 0:
+        scheduler.start()
+    elif scheduler.state == 2:
+        scheduler.resume()
+    scheduler_state_map = {0: "停止", 1: "运行", 2: "暂停"}
+    logging.info(">>> 重载调度器")
+    logging.info(f"调度状态: {scheduler_state_map[scheduler.state]}")
+    logging.info(f"全局定时规则: {global_crontab}")
+    logging.info(f"现有任务: {scheduler.get_jobs()}")
+    return True
 
 
 def init():

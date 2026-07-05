@@ -483,6 +483,13 @@
                       </div>
                     </div>
                   </div>
+                  <div class="form-group row" title="单个任务的定时规则，crontab 格式。留空则使用系统设置中的全局定时规则">
+                    <label class="col-sm-2 col-form-label">定时规则</label>
+                    <div class="col-sm-10">
+                      <input type="text" name="crontab[]" class="form-control" v-model="task.crontab" placeholder="可选，crontab 格式，留空则使用全局定时规则，如 0 8,18 * * *">
+                      <small class="form-text text-muted">定时规则触发后仍受上方「运行星期」限制，二者需保持一致（取交集），否则任务可能不执行。</small>
+                    </div>
+                  </div>
                   <div class="form-group row" v-if="Object.keys(getAvailablePlugins(formData.plugins)).length" title="单个任务的插件选项，具体键值由插件定义，见Wiki">
                     <label class="col-sm-2 col-form-label">插件选项</label>
                     <div class="col-sm-10">
@@ -709,6 +716,7 @@
           pattern: "",
           replace: "",
           enddate: "",
+          crontab: "",
           addition: {},
           ignore_extension: false,
           runweek: [1, 2, 3, 4, 5, 6, 7]
@@ -814,6 +822,9 @@
               config_data.tasklist = config_data.tasklist.map(task => {
                 if (!task.hasOwnProperty('runweek')) {
                   task.runweek = [1, 2, 3, 4, 5, 6, 7];
+                }
+                if (!task.hasOwnProperty('crontab')) {
+                  task.crontab = "";
                 }
                 return task;
               });
@@ -1009,6 +1020,7 @@
             task = { ...this.formData.tasklist[task_index] };
             delete task.runweek;
             delete task.enddate;
+            delete task.crontab;
             body = {
               "tasklist": [task]
             };
