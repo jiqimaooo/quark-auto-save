@@ -168,7 +168,10 @@ def index():
     if not is_login():
         return redirect(url_for("login"))
     return render_template(
-        "index.html", version=app.config["APP_VERSION"], plugin_flags=PLUGIN_FLAGS
+        "index.html",
+        version=app.config["APP_VERSION"],
+        plugin_flags=PLUGIN_FLAGS,
+        username=config_data["webui"]["username"],
     )
 
 

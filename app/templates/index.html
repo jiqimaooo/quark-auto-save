@@ -26,6 +26,12 @@
       <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-toggle="collapse" data-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false">
         <span class="navbar-toggler-icon"></span>
       </button>
+      <div class="navbar-user ml-auto d-flex align-items-center px-3">
+        <span class="navbar-avatar" title="[[ username ]]">[[ username[0]|upper ]]</span>
+        <a class="navbar-logout ml-2" href="/logout">
+          <i class="bi bi-box-arrow-right"></i> 退出
+        </a>
+      </div>
     </nav>
 
     <div class="container-fluid">
@@ -33,19 +39,13 @@
         <div class="sidebar-sticky pt-3">
           <ul class="nav flex-column">
             <li class="nav-item">
-              <a class="nav-link" href="#" :class="{active: activeTab === 'config'}" @click="changeTab('config')">
-                <i class="bi bi-gear-fill"></i> 系统配置
-              </a>
-            </li>
-            <li class="nav-item">
               <a class="nav-link" href="#" :class="{active: activeTab === 'tasklist'}" @click="changeTab('tasklist')">
                 <i class="bi bi-list-task"></i> 任务列表
               </a>
             </li>
-            <h6 class="sidebar-heading px-3 mt-4 mb-1 text-muted">dashboard</h6>
             <li class="nav-item">
-              <a class="nav-link" href="/logout">
-                <i class="bi bi-box-arrow-right"></i></i> 退出
+              <a class="nav-link" href="#" :class="{active: activeTab === 'config'}" @click="changeTab('config')">
+                <i class="bi bi-gear-fill"></i> 系统配置
               </a>
             </li>
           </ul>
@@ -69,23 +69,29 @@
         <form @submit.prevent="saveConfig" @keydown.enter.prevent>
 
           <div v-if="activeTab === 'config'">
+            <div class="qas-card">
             <div class="row title">
               <div class="col-10">
                 <h2><i class="bi bi-cookie"></i> Cookie</h2>
               </div>
               <div class="col-2 text-right">
-                <button type="button" class="btn btn-outline-primary" @click="addCookie()">+</button>
+                <button type="button" class="btn btn-outline-primary" @click="addCookie()" title="新增账号 Cookie">+ 新增</button>
               </div>
             </div>
             <p>1. 所有账号执行签到，纯<a class="" href="https://github.com/Cp0204/quark-auto-save/wiki/使用技巧集锦#每日签到领空间">签到</a>只需移动端参数即可！</p>
             <p>2. 仅第一个账号执行转存，请自行确认顺序。<b>最好是手机验证码<a target="_blank" href="https://pan.quark.cn/">登录</a>，CK比较完整！</b>如需签到参数附在CK后面。</p>
             <div v-for="(value, index) in formData.cookie" :key="index" class="input-group mb-2">
+              <div class="input-group-prepend">
+                <span class="input-group-text">#{{ index + 1 }}</span>
+              </div>
               <input type="text" v-model="formData.cookie[index]" class="form-control" placeholder="打开 pan.quark.com 按 F12 抓取">
               <div class="input-group-append">
-                <button type="button" class="btn btn-outline-danger" @click="removeCookie(index)">-</button>
+                <button type="button" class="btn btn-outline-danger" @click="confirmDelete('cookie', index, '#' + (index + 1))" title="删除此 Cookie">-</button>
               </div>
             </div>
+            </div>
 
+            <div class="qas-card">
             <div class="row title">
               <div class="col">
                 <h2 style="display: inline-block;"><i class="bi bi-clock"></i> 定时规则</h2>
@@ -100,7 +106,9 @@
               </div>
               <input type="text" v-model="formData.crontab" class="form-control" placeholder="必填">
             </div>
+            </div>
 
+            <div class="qas-card">
             <div class="row title" title="通知推送，支持多个渠道，见Wiki">
               <div class="col-8">
                 <h2 style="display: inline-block;"><i class="bi bi-bell"></i> 通知</h2>
@@ -109,8 +117,8 @@
                 </span>
               </div>
               <div class="col-4 text-right">
-                <button type="button" class="btn btn-success" title="通知推送测试" @click="testPush()"><i class="bi bi-lightning"></i></button>
-                <button type="button" class="btn btn-outline-primary" @click="addPush()">+</button>
+                <button type="button" class="btn btn-success" title="通知推送测试" @click="testPush()"><i class="bi bi-lightning"></i> 测试</button>
+                <button type="button" class="btn btn-outline-primary" @click="addPush()">+ 新增</button>
               </div>
             </div>
             <div v-for="(value, key) in formData.push_config" :key="key" class="input-group mb-2">
@@ -122,11 +130,13 @@
               </div>
               <input type="text" v-model="formData.push_config[key]" class="form-control">
               <div class="input-group-append">
-                <button type="button" class="btn btn-outline-danger" @click="removePush(key)">-</button>
+                <button type="button" class="btn btn-outline-danger" @click="confirmDelete('push', key, key)">-</button>
               </div>
             </div>
+            </div>
 
-            <div class="row title" v-if="Object.keys(getAvailablePlugins(formData.plugins)).length" title="各插件的配置选项，具体键值由插件定义，见Wiki">
+            <div class="qas-card" v-if="Object.keys(getAvailablePlugins(formData.plugins)).length">
+            <div class="row title" title="各插件的配置选项，具体键值由插件定义，见Wiki">
               <div class="col">
                 <h2 style="display: inline-block;"><i class="bi bi-plug"></i> 插件</h2>
                 <span class="badge badge-pill badge-light">
@@ -134,14 +144,18 @@
                 </span>
               </div>
             </div>
-            <div v-for="(plugin, pluginName) in getAvailablePlugins(formData.plugins)" :key="pluginName">
+            <div class="qas-plugin-grid">
+            <div class="qas-plugin-card" v-for="(plugin, pluginName) in getAvailablePlugins(formData.plugins)" :key="pluginName">
               <div class="form-group row mb-0" style="display:flex; align-items:center;">
-                <div data-toggle="collapse" :data-target="'#collapse_'+pluginName" aria-expanded="true" :aria-controls="'collapse_'+pluginName">
+                <div class="cursor-pointer" style="flex:1;" data-toggle="collapse" :data-target="'#collapse_'+pluginName" aria-expanded="true" :aria-controls="'collapse_'+pluginName">
                   <div class="btn btn-block text-left">
                     <i class="bi bi-caret-right-fill"></i> <span>{{ pluginName }}</span>
                   </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-success ml-2" @click.stop="testPlugin(pluginName)" title="测试插件连通性"><i class="bi bi-lightning"></i> 测试</button>
+                <button type="button" class="btn btn-sm btn-outline-success ml-2" :disabled="pluginTesting === pluginName" @click.stop="testPlugin(pluginName)" title="测试插件连通性">
+                  <span v-if="pluginTesting === pluginName" class="spinner-border spinner-border-sm" role="status"></span>
+                  <i v-else class="bi bi-lightning"></i> 测试
+                </button>
               </div>
               <div class="collapse ml-3 mt-2" :id="'collapse_'+pluginName">
                 <div class="form-group row">
@@ -171,7 +185,10 @@
                 </template>
               </div>
             </div>
+            </div>
+            </div>
 
+            <div class="qas-card">
             <div class="row title" title="预定义的正则匹配规则，在任务列表中可直接点击使用">
               <div class="col-10">
                 <h2 style="display: inline-block;"><i class="bi bi-magic"></i> 魔法匹配</h2>
@@ -180,7 +197,7 @@
                 </span>
               </div>
               <div class="col-2 text-right">
-                <button type="button" class="btn btn-outline-primary" @click="addMagicRegex()">+</button>
+                <button type="button" class="btn btn-outline-primary" @click="addMagicRegex()">+ 新增</button>
               </div>
             </div>
             <div v-for="(value, key) in formData.magic_regex" :key="key" class="form-group mb-2">
@@ -195,12 +212,14 @@
                 <input type="text" v-model="value.pattern" class="form-control" placeholder="匹配表达式">
                 <input type="text" v-model="value.replace" class="form-control" placeholder="替换表达式">
                 <div class="input-group-append">
-                  <button type="button" class="btn btn-outline-danger" @click="removeMagicRegex(key)">-</button>
+                  <button type="button" class="btn btn-outline-danger" @click="confirmDelete('magic', key, key)">-</button>
                 </div>
               </div>
             </div>
+            </div>
 
 
+            <div class="qas-card">
             <div class="row title" title="API接口，用以第三方添加任务等操作，见Wiki">
               <div class="col-10">
                 <h2 style="display: inline-block;"><i class="bi bi-link-45deg"></i> API</h2>
@@ -215,7 +234,9 @@
               </div>
               <input type="text" v-model="formData.api_token" class="form-control" style="background-color:white;" disabled>
             </div>
+            </div>
 
+            <div class="qas-card">
             <div class="row title" title="资源搜索服务配置，用于任务名称智能搜索">
               <div class="col-10">
                 <h2 style="display: inline-block;"><i class="bi bi-search"></i> 资源搜索</h2>
@@ -284,56 +305,51 @@
                 </div>
               </div>
             </div>
+            </div>
 
           </div>
 
           <div v-if="activeTab === 'tasklist'">
-            <div class="row title">
-              <div class="col">
-                <h2>任务列表</h2>
+            <div class="qas-filter-bar">
+              <div class="qas-filter-title">
+                <h2><i class="bi bi-list-task"></i> 任务列表</h2>
+                <span class="qas-badge qas-badge-neutral">共 {{ formData.tasklist.length }} 个任务</span>
               </div>
-            </div>
-            <hr>
-            <div class="row">
-              <div class="col-lg-6 col-md-12">
-                <div class="row">
-                  <label class="col-form-label col-md-3">名称筛选</label>
-                  <div class="input-group col-md-9">
-                    <input type="text" class="form-control" v-model="taskNameFilter" placeholder="名称 筛选/搜索">
-                    <div class="input-group-append">
-                      <button type="button" class="btn btn-outline-secondary" @click="clearData('taskNameFilter')"><i class="bi bi-x-lg"></i></button>
-                    </div>
-                  </div>
+              <div class="qas-filter-controls">
+                <div class="qas-filter-field">
+                  <i class="bi bi-search qas-filter-icon"></i>
+                  <input type="text" class="form-control" v-model="taskNameFilter" placeholder="按名称筛选/搜索">
+                  <button v-if="taskNameFilter" type="button" class="qas-filter-clear" @click="clearData('taskNameFilter')" title="清除"><i class="bi bi-x-lg"></i></button>
                 </div>
-              </div>
-              <div class="col-lg-6 col-md-12">
-                <div class="row">
-                  <label class="col-form-label col-md-3">路径筛选</label>
-                  <div class="input-group col-md-9">
-                    <select class="form-control" v-model="taskDirSelected">
-                      <option v-for="(dir, index) in taskDirs" :value="dir">{{ dir }}</option>
-                    </select>
-                    <div class="input-group-append">
-                      <button type="button" class="btn btn-outline-secondary" @click="clearData('taskDirSelected')"><i class="bi bi-x-lg"></i></button>
-                    </div>
-                  </div>
+                <div class="qas-filter-field">
+                  <i class="bi bi-folder qas-filter-icon"></i>
+                  <select class="form-control" v-model="taskDirSelected">
+                    <option value="">全部路径</option>
+                    <option v-for="(dir, index) in taskDirs" :value="dir">{{ dir }}</option>
+                  </select>
+                  <button v-if="taskDirSelected" type="button" class="qas-filter-clear" @click="clearData('taskDirSelected')" title="清除"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="qas-filter-actions">
+                  <button type="button" class="btn btn-primary" @click="addTask()"><i class="bi bi-plus-lg"></i> 增加任务</button>
+                  <button type="button" class="btn btn-secondary" @click="addTaskForClipboard()" title="从粘贴板导入"><i class="bi bi-clipboard-plus"></i></button>
                 </div>
               </div>
             </div>
             <div v-for="(task, index) in formData.tasklist" :key="index" class="task mb-3">
               <template v-if="(taskDirSelected == '' || getParentDirectory(task.savepath) == taskDirSelected) && task.taskname.includes(taskNameFilter)">
-                <hr>
-                <div class="form-group row" style="align-items:center">
-                  <div class="col pl-0" data-toggle="collapse" :data-target="'#collapse_'+index" aria-expanded="true" :aria-controls="'collapse_'+index">
-                    <div class="btn btn-block text-left">
-                      <i class="bi bi-caret-right-fill"></i> #<span>{{ index+1 }}: {{ task.taskname }}</span>
+                <div class="task-header form-group row" style="align-items:center" data-toggle="collapse" :data-target="'#collapse_'+index" aria-expanded="true" :aria-controls="'collapse_'+index">
+                  <div class="col pl-0">
+                    <div class="task-title">
+                      <i class="bi bi-caret-right-fill task-caret"></i>
+                      <span class="task-index">#{{ index+1 }}</span>
+                      <span class="task-name">{{ task.taskname }}</span>
                     </div>
                   </div>
-                  <div class="col-auto">
+                  <div class="col-auto task-actions" @click.stop>
                     <button type="button" class="btn btn-outline-primary btn-sm" @click="copyTaskToClipboard(index)" title="复制任务参数到粘贴板"><i class=" bi bi-clipboard-check-fill"></i></button>
                     <button class="btn btn-warning btn-sm" v-if="task.shareurl_ban" :title="task.shareurl_ban" disabled><i class="bi bi-exclamation-triangle-fill"></i></button>
                     <button type="button" class="btn btn-outline-primary btn-sm" @click="runScriptNow(index)" title="运行此任务" v-else><i class="bi bi-play-fill"></i></button>
-                    <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTask(index)" title="删除此任务"><i class="bi bi-trash3-fill"></i></button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @click="confirmDelete('task', index, task.taskname)" title="删除此任务"><i class="bi bi-trash3-fill"></i></button>
                   </div>
                 </div>
                 <div class="collapse ml-3" :id="'collapse_'+index">
@@ -467,14 +483,6 @@
                   </div>
                 </div>
               </template>
-            </div>
-            <div class="row mt-5">
-              <div class="col-sm-12 text-center">
-                <div class="btn-group" role="group" aria-label="任务操作">
-                  <button type="button" class="btn btn-primary" @click="addTask()"><i class="bi bi-plus"></i> 增加任务</button>
-                  <button type="button" class="btn btn-primary" @click="addTaskForClipboard()" title="从粘贴板导入"><i class="bi bi-clipboard-plus"></i></button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -620,6 +628,19 @@
       </div>
     </div>
 
+    <!-- 二次确认 弹窗 -->
+    <div class="qas-confirm-backdrop" v-if="confirmDialog.show" @click.self="cancelConfirm()">
+      <div class="qas-confirm">
+        <div class="qas-confirm-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <h5>{{ confirmDialog.title }}</h5>
+        <p>{{ confirmDialog.message }}</p>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" @click="cancelConfirm()">取消</button>
+          <button type="button" class="btn btn-danger" @click="acceptConfirm()">确认删除</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast 提示 -->
     <div class="toast-container">
       <div v-for="toast in toasts" :key="toast.id" class="toast show shadow-sm" :class="toast.type" role="alert" aria-live="assertive" aria-atomic="true">
@@ -665,6 +686,14 @@
           },
         },
         toasts: [],
+        pluginTesting: "",
+        confirmDialog: {
+          show: false,
+          title: "",
+          message: "",
+          type: "",
+          payload: null,
+        },
         newTask: {
           taskname: "",
           shareurl: "",
@@ -1059,6 +1088,7 @@
         },
         testPlugin(pluginName) {
           const config = this.formData.plugins[pluginName] || {};
+          this.pluginTesting = pluginName;
           this.showToast(`正在测试插件 [${pluginName}] ...`, 'info', 2000);
           axios.post('/api/test_plugin', {
             plugin_name: pluginName,
@@ -1071,7 +1101,40 @@
             }
           }).catch(error => {
             this.showToast(`插件 [${pluginName}] 测试请求失败: ${error}`, 'error');
+          }).finally(() => {
+            this.pluginTesting = "";
           });
+        },
+        confirmDelete(type, key, name) {
+          const titles = {
+            task: '删除任务',
+            cookie: '删除 Cookie',
+            push: '删除通知渠道',
+            magic: '删除魔法匹配',
+          };
+          const label = name ? `「${name}」` : '';
+          this.confirmDialog = {
+            show: true,
+            title: titles[type] || '确认删除',
+            message: `确定要删除${label}吗？此操作不可撤销。`,
+            type: type,
+            payload: key,
+          };
+        },
+        cancelConfirm() {
+          this.confirmDialog.show = false;
+          this.confirmDialog.payload = null;
+        },
+        acceptConfirm() {
+          const { type, payload } = this.confirmDialog;
+          switch (type) {
+            case 'task': this.removeTask(payload); break;
+            case 'cookie': this.removeCookie(payload); break;
+            case 'push': this.removePush(payload); break;
+            case 'magic': this.removeMagicRegex(payload); break;
+          }
+          this.confirmDialog.show = false;
+          this.confirmDialog.payload = null;
         },
         toggleAllWeekdays(task) {
           if (task.runweek.length === 7) {
