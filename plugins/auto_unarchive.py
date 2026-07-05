@@ -21,10 +21,12 @@ class Auto_unarchive:
 
     def __init__(self, **kwargs):
         self.plugin_name = self.__class__.__name__.lower()
-        if kwargs:
-            for key, _ in self.default_config.items():
-                if key in kwargs:
-                    setattr(self, key, kwargs[key])
+        # 先初始化默认值，再用传入参数覆盖
+        for key, value in self.default_config.items():
+            setattr(self, key, value)
+        for key, value in kwargs.items():
+            if key in self.default_config:
+                setattr(self, key, value)
         # 只有明确开启全局开关才激活
         self.is_active = str(self.global_enable).lower() == "true"
 

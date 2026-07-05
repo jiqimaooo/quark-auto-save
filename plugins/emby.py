@@ -32,12 +32,16 @@ class Emby:
         if media_id := task_config.get("media_id"):
             if media_id != "0":
                 self.refresh(media_id)
+            else:
+                print(f"🎞️ Emby刷新: media_id=0，跳过")
         elif task_config.get("try_match"):
             if match_media_id := self.search(task["taskname"]):
                 self.refresh(match_media_id)
                 task_config["media_id"] = match_media_id
                 task.setdefault("addition", {})[self.plugin_name] = task_config
                 return task
+            else:
+                print(f"🎞️ Emby刷新: 未匹配到《{task['taskname']}》，跳过")
 
     def get_info(self):
         url = f"{self.url}/emby/System/Info"
