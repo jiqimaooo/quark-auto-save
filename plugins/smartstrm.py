@@ -7,6 +7,9 @@ class Smartstrm:
         "strmtask": "",  # SmartStrm 任务名，支持多个如 `tv,movie`
         "xlist_path_fix": "",  # 路径映射， SmartStrm 任务使用 quark 驱动时无须填写；使用 openlist 驱动时需填写 `/storage_mount_path:/quark_root_dir` ，例如把夸克根目录挂载在 OpenList 的 /quark 下，则填写 `/quark:/` ；以及 SmartStrm 会使 OpenList 强制刷新目录，无需再用 alist 插件刷新。
     }
+    default_task_config = {
+        "enable": True,  # 任务级开关：转存后是否通知 SmartStrm 生成 STRM
+    }
     is_active = False
 
     def __init__(self, **kwargs):
@@ -45,6 +48,9 @@ class Smartstrm:
         :param task: 任务配置
         :param kwargs: 其他参数
         """
+        task_config = task.get("addition", {}).get("smartstrm", self.default_task_config)
+        if not task_config.get("enable", True):
+            return
         try:
             # 准备发送的数据
             headers = {"Content-Type": "application/json"}

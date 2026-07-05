@@ -14,6 +14,9 @@ class Alist_strm:
         "cookie": "",  # alist-strm的cookie，F12抓取，关键参数：session=ey***
         "config_id": "",  # 要触发运行的配置ID，支持多个，用逗号分隔
     }
+    default_task_config = {
+        "enable": True,  # 任务级开关：转存后是否触发 alist-strm 配置运行
+    }
     is_active = False
 
     def __init__(self, **kwargs):
@@ -28,6 +31,9 @@ class Alist_strm:
                     self.is_active = True
 
     def run(self, task, **kwargs):
+        task_config = task.get("addition", {}).get("alist_strm", self.default_task_config)
+        if not task_config.get("enable", True):
+            return
         self.run_selected_configs(self.config_id)
 
     def get_info(self, config_id_str):

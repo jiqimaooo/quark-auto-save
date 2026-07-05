@@ -9,6 +9,9 @@ class Plex:
         "token": "",  # Plex Token，可F12在请求中抓取
         "quark_root_path": "",  # 夸克根目录在Plex中的路径；假设夸克目录/media/tv在plex中对应的路径为/quark/media/tv，则为/quark
     }
+    default_task_config = {
+        "enable": True,  # 任务级开关：转存后是否刷新 Plex 媒体库
+    }
     is_active = False
     _libraries = None  # 缓存库信息
 
@@ -24,6 +27,9 @@ class Plex:
                     self.is_active = True
 
     def run(self, task, **kwargs):
+        task_config = task.get("addition", {}).get("plex", self.default_task_config)
+        if not task_config.get("enable", True):
+            return
         if task.get("savepath"):
             # 检查是否已缓存库信息
             if self._libraries is None:

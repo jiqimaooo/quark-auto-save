@@ -20,6 +20,7 @@ from sdk.cloudsaver import CloudSaver
 from sdk.pansou import PanSou
 from datetime import timedelta
 import subprocess
+import importlib
 import requests
 import hashlib
 import logging
@@ -174,11 +175,14 @@ def index():
 # 获取配置数据
 @app.route("/data")
 def get_data():
+    global task_plugins_config_default
     if not is_login():
         return jsonify({"success": False, "message": "未登录"})
     data = Config.read_json(CONFIG_PATH)
     del data["webui"]
     data["api_token"] = get_login_token()
+    # 每次请求时动态计算，确保修改插件配置后即时生效
+    _, _, task_plugins_config_default = Config.load_plugins(data.get("plugins", {}))
     data["task_plugins_config_default"] = task_plugins_config_default
     return jsonify({"success": True, "data": data})
 
@@ -514,6 +518,32 @@ def rename_file():
         return jsonify({"success": False, "message": str(e)})
 
 
+# 插件测试接口
+@app.route("/api/test_plugin", methods=["POST"])
+def test_plugin():
+    if not is_login():
+        return jsonify({"success": False, "message": "未登录"})
+    plugin_name = request.json.get("plugin_name", "")
+    plugin_config = request.json.get("config", {})
+    if not plugin_name:
+        return jsonify({"success": False, "message": "缺少插件名称"})
+    try:
+        # 动态加载插件并测试连通性
+        module = importlib.import_module(f"plugins.{plugin_name}")
+        ServerClass = getattr(module, plugin_name.capitalize())
+        plugin = ServerClass(**plugin_config)
+        if plugin.is_active:
+            return jsonify({"success": True, "message": f"插件 [{plugin_name}] 连接测试通过✅"})
+        else:
+            return jsonify({"success": False, "message": f"插件 [{plugin_name}] 连接测试失败❌，请检查配置参数"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"插件 [{plugin_name}] 测试异常: {str(e)}"})
+    finally:
+        # 清理已导入的插件模块，避免影响后续正常加载
+        if f"plugins.{plugin_name}" in sys.modules:
+            del sys.modules[f"plugins.{plugin_name}"]
+
+
 # 添加任务接口
 @app.route("/api/add_task", methods=["POST"])
 def add_task():
@@ -649,6 +679,9 @@ def init():
                 .get(key, value)
             )
     config_data["plugins"] = plugins_config_default
+
+    # 用实际配置重新加载，获取正确的 task_plugins_config_default（仅含已激活的插件）
+    _, _, task_plugins_config_default = Config.load_plugins(config_data.get("plugins", {}))
 
     # 更新配置
     Config.write_json(CONFIG_PATH, config_data)

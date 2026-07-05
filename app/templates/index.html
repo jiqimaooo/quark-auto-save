@@ -141,9 +141,17 @@
                     <i class="bi bi-caret-right-fill"></i> <span>{{ pluginName }}</span>
                   </div>
                 </div>
+                <button type="button" class="btn btn-sm btn-outline-success ml-2" @click.stop="testPlugin(pluginName)" title="测试插件连通性"><i class="bi bi-lightning"></i> 测试</button>
               </div>
               <div class="collapse ml-3 mt-2" :id="'collapse_'+pluginName">
+                <div class="form-group row">
+                  <label class="col-sm-2 col-form-label">delay</label>
+                  <div class="col-sm-10">
+                    <input type="number" min="0" v-model="formData.plugins[pluginName].delay" class="form-control" placeholder="插件执行后延时(秒)，用于控制插件间执行间隔">
+                  </div>
+                </div>
                 <template v-for="(value, key) in plugin" :key="key">
+                  <template v-if="key !== 'delay'">
                   <div v-if="key.startsWith('tips_')">
                     <div class="alert alert-warning" role="alert">{{ value }}</div>
                   </div>
@@ -159,6 +167,7 @@
                       <input :type="key.includes('password') || key.includes('token') || key.includes('secret') ? 'password' : 'text'" v-model="formData.plugins[pluginName][key]" class="form-control">
                     </div>
                   </div>
+                  </template>
                 </template>
               </div>
             </div>
@@ -453,7 +462,7 @@
                   <div class="form-group row" v-if="Object.keys(getAvailablePlugins(formData.plugins)).length" title="单个任务的插件选项，具体键值由插件定义，见Wiki">
                     <label class="col-sm-2 col-form-label">插件选项</label>
                     <div class="col-sm-10">
-                      <v-jsoneditor v-model="task.addition" :options="{mode:'tree'}" :plus="false" height="180px"></v-jsoneditor>
+                      <v-jsoneditor v-model="task.addition" :options="{mode:'tree'}" :plus="true" height="180px"></v-jsoneditor>
                     </div>
                   </div>
                 </div>
@@ -1047,6 +1056,22 @@
             }
           }
           return availablePlugins;
+        },
+        testPlugin(pluginName) {
+          const config = this.formData.plugins[pluginName] || {};
+          this.showToast(`正在测试插件 [${pluginName}] ...`, 'info', 2000);
+          axios.post('/api/test_plugin', {
+            plugin_name: pluginName,
+            config: config
+          }).then(response => {
+            if (response.data.success) {
+              this.showToast(response.data.message, 'success', 5000);
+            } else {
+              this.showToast(response.data.message, 'error', 5000);
+            }
+          }).catch(error => {
+            this.showToast(`插件 [${pluginName}] 测试请求失败: ${error}`, 'error');
+          });
         },
         toggleAllWeekdays(task) {
           if (task.runweek.length === 7) {

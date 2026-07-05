@@ -11,6 +11,9 @@ class Alist:
         "token": "",  # Alist服务器Token
         "storage_id": "",  # Alist 服务器夸克存储 ID
     }
+    default_task_config = {
+        "enable": True,  # 任务级开关：转存后是否刷新 Alist 目录
+    }
     is_active = False
     # 缓存参数
     storage_mount_path = None
@@ -31,6 +34,9 @@ class Alist:
                         self.is_active = True
 
     def run(self, task, **kwargs):
+        task_config = task.get("addition", {}).get("alist", self.default_task_config)
+        if not task_config.get("enable", True):
+            return
         if task.get("savepath") and task.get("savepath").startswith(
             self.quark_root_dir
         ):

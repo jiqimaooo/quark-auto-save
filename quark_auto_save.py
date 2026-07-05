@@ -131,8 +131,8 @@ class Config:
                 else:
                     plugin = ServerClass()
                     plugins_config[module_name] = plugin.default_config
-                # 检查插件是否支持单独任务配置
-                if hasattr(plugin, "default_task_config"):
+                # 检查插件是否支持单独任务配置（且插件已激活）
+                if hasattr(plugin, "default_task_config") and plugin.is_active:
                     task_plugins_config[module_name] = plugin.default_task_config
             except (ImportError, AttributeError) as e:
                 print(f"载入模块 {module_name} 失败: {e}")
@@ -1223,11 +1223,20 @@ def do_save(account, tasklist=[]):
             # 调用插件
             if is_new_tree:
                 print(f"🧩 调用插件")
-                for plugin_name, plugin in plugins.items():
-                    if plugin.is_active and hasattr(plugin, "run"):
-                        task = (
-                            plugin.run(task, account=account, tree=is_new_tree) or task
-                        )
+                active_plugins = [
+                    (name, p) for name, p in plugins.items()
+                    if p.is_active and hasattr(p, "run")
+                ]
+                for idx, (plugin_name, plugin) in enumerate(active_plugins):
+                    task = (
+                        plugin.run(task, account=account, tree=is_new_tree) or task
+                    )
+                    # 插件间延时：读取插件全局配置中的 delay（秒），默认0
+                    plugin_config = CONFIG_DATA.get("plugins", {}).get(plugin_name, {})
+                    delay = int(plugin_config.get("delay", 0))
+                    if delay > 0 and idx < len(active_plugins) - 1:
+                        print(f"⏳ 等待 {delay}s 后执行下一个插件...")
+                        time.sleep(delay)
     print()
     print(f"===============插件收尾===============")
     for plugin_name, plugin in plugins.items():

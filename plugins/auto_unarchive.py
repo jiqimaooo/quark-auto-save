@@ -17,7 +17,7 @@ class Auto_unarchive:
         "auto_clean_zipdir": False,  # 是否删除占位目录，适用于一次性运行的任务，无须防止重复转存的占位目录
     }
 
-    is_active = True  # 默认全局激活，由任务配置中开启
+    is_active = False  # 需在全局配置中开启 global_enable 后激活
 
     def __init__(self, **kwargs):
         self.plugin_name = self.__class__.__name__.lower()
@@ -25,6 +25,8 @@ class Auto_unarchive:
             for key, _ in self.default_config.items():
                 if key in kwargs:
                     setattr(self, key, kwargs[key])
+        # 只有明确开启全局开关才激活
+        self.is_active = str(self.global_enable).lower() == "true"
 
     def run(self, task, **kwargs):
         account = kwargs.get("account")
