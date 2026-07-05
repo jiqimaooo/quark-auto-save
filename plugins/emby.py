@@ -8,9 +8,9 @@ class Emby:
         "token": "",  # Emby服务器token
     }
     default_task_config = {
-        "enable": True,     # 任务级开关：转存后是否刷新 Emby
-        "mode": "full",     # 刷新模式：full=全库扫描, item=单剧刷新
-        "media_id": "",     # mode=item 时指定媒体ID，为空则尝试自动匹配任务名
+        "enable": True,       # 任务级开关：转存后是否刷新 Emby
+        "item_mode": False,   # 勾选=仅刷新单部剧，不勾选=全库扫描（默认）
+        "media_id": "",       # item_mode勾选时填入Emby剧集ID，留空则尝试自动匹配
     }
     is_active = False
 
@@ -34,7 +34,7 @@ class Emby:
             print(f"🎞️ Emby刷新: 已禁用，跳过")
             return
 
-        if task_config.get("mode") == "item":
+        if task_config.get("item_mode"):
             # 单剧刷新
             media_id = task_config.get("media_id", "")
             if media_id and media_id != "0":
@@ -46,7 +46,7 @@ class Emby:
                     task_config["media_id"] = match_id
                     task.setdefault("addition", {})[self.plugin_name] = task_config
                 else:
-                    print(f"🎞️ Emby刷新: 未匹配到《{task['taskname']}》，跳过（可切为 mode=full 全库扫描）")
+                    print(f"🎞️ Emby刷新: 未匹配到《{task['taskname']}》，跳过（可关闭 item_mode 用全库扫描）")
         else:
             # 全库扫描
             self.scan_library()
