@@ -152,10 +152,10 @@
                     <i class="bi bi-caret-right-fill"></i> <span>{{ pluginName }}</span>
                   </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-success ml-2" :disabled="pluginTesting === pluginName" @click.stop="testPlugin(pluginName)" title="测试插件连通性">
-                  <span v-if="pluginTesting === pluginName" class="spinner-border spinner-border-sm" role="status"></span>
-                  <i v-else class="bi bi-lightning"></i> 测试
-                </button>
+                <label class="qas-switch mb-0 ml-2" @click.stop title="启用后该插件才会出现在任务的插件选项中">
+                  <input type="checkbox" v-model="formData.plugins[pluginName].enable">
+                  <span class="qas-switch-slider"></span>
+                </label>
               </div>
               <div class="collapse ml-3 mt-2" :id="'collapse_'+pluginName">
                 <div class="form-group row">
@@ -165,7 +165,7 @@
                   </div>
                 </div>
                 <template v-for="(value, key) in plugin" :key="key">
-                  <template v-if="key !== 'delay'">
+                  <template v-if="key !== 'delay' && key !== 'enable'">
                   <div v-if="key.startsWith('tips_')">
                     <div class="alert alert-warning" role="alert">{{ value }}</div>
                   </div>
@@ -183,6 +183,14 @@
                   </div>
                   </template>
                 </template>
+                <div class="form-group row mb-0">
+                  <div class="col-sm-10 offset-sm-2">
+                    <button type="button" class="btn btn-sm btn-outline-success" :disabled="pluginTesting === pluginName" @click.stop="testPlugin(pluginName)" title="测试插件连通性">
+                      <span v-if="pluginTesting === pluginName" class="spinner-border spinner-border-sm" role="status"></span>
+                      <i v-else class="bi bi-lightning"></i> 测试
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             </div>

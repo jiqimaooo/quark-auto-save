@@ -131,8 +131,11 @@ class Config:
                 else:
                     plugin = ServerClass()
                     plugins_config[module_name] = plugin.default_config
-                # 检查插件是否支持单独任务配置（且插件已激活）
-                if hasattr(plugin, "default_task_config") and plugin.is_active:
+                # 插件启用开关（用户手动控制），默认关闭
+                plugin_enable = bool(plugins_config[module_name].get("enable", False))
+                plugins_config[module_name]["enable"] = plugin_enable
+                # 检查插件是否支持单独任务配置（且已被用户启用）
+                if hasattr(plugin, "default_task_config") and plugin_enable:
                     task_plugins_config[module_name] = plugin.default_task_config
             except (ImportError, AttributeError) as e:
                 print(f"载入模块 {module_name} 失败: {e}")
@@ -1173,8 +1176,14 @@ def do_save(account, tasklist=[]):
             or (datetime.today().weekday() + 1 in task.get("runweek"))
         )
 
+    def plugin_enabled(name, plugin):
+        # 插件生效需同时满足：已激活(配置有效可连通) 且 用户已启用开关
+        if not plugin.is_active:
+            return False
+        return bool(CONFIG_DATA.get("plugins", {}).get(name, {}).get("enable", False))
+
     for plugin_name, plugin in plugins.items():
-        if plugin.is_active and hasattr(plugin, "task_before"):
+        if plugin_enabled(plugin_name, plugin) and hasattr(plugin, "task_before"):
             tasklist = (
                 plugin.task_before(tasklist=tasklist, account=account) or tasklist
             )
@@ -1225,7 +1234,7 @@ def do_save(account, tasklist=[]):
                 print(f"🧩 调用插件")
                 active_plugins = [
                     (name, p) for name, p in plugins.items()
-                    if p.is_active and hasattr(p, "run")
+                    if plugin_enabled(name, p) and hasattr(p, "run")
                 ]
                 for idx, (plugin_name, plugin) in enumerate(active_plugins):
                     task = (
@@ -1240,7 +1249,7 @@ def do_save(account, tasklist=[]):
     print()
     print(f"===============插件收尾===============")
     for plugin_name, plugin in plugins.items():
-        if plugin.is_active and hasattr(plugin, "task_after"):
+        if plugin_enabled(plugin_name, plugin) and hasattr(plugin, "task_after"):
             data = plugin.task_after(tasklist=tasklist, account=account)
             if data.get("tasklist"):
                 CONFIG_DATA["tasklist"] = data["tasklist"]
