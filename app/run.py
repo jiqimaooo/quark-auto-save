@@ -18,7 +18,7 @@ from apscheduler.triggers.cron import CronTrigger
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sdk.cloudsaver import CloudSaver
 from sdk.pansou import PanSou
-from datetime import timedelta
+from datetime import datetime, timedelta
 import subprocess
 import importlib
 import requests
@@ -188,6 +188,59 @@ def get_data():
     _, _, task_plugins_config_default = Config.load_plugins(data.get("plugins", {}))
     data["task_plugins_config_default"] = task_plugins_config_default
     return jsonify({"success": True, "data": data})
+
+
+# 预览 Crontab 未来执行时间
+@app.route("/api/cron_preview", methods=["POST"])
+def cron_preview():
+    if not is_login():
+        return jsonify({"success": False, "message": "未登录"})
+
+    crontab = (request.json or {}).get("crontab", "").strip()
+    if not crontab:
+        return jsonify({"success": False, "message": "请先填写 Cron 表达式"})
+
+    try:
+        trigger = CronTrigger.from_crontab(crontab)
+        now = datetime.now(trigger.timezone)
+        previous_fire_time = None
+        next_fire_times = []
+
+        for _ in range(5):
+            next_fire_time = trigger.get_next_fire_time(previous_fire_time, now)
+            if next_fire_time is None:
+                break
+            next_fire_times.append(
+                {
+                    "date": next_fire_time.strftime("%Y-%m-%d"),
+                    "time": next_fire_time.strftime("%H:%M"),
+                    "weekday": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][next_fire_time.weekday()],
+                    "iso": next_fire_time.isoformat(),
+                }
+            )
+            previous_fire_time = next_fire_time
+            now = next_fire_time
+
+        if not next_fire_times:
+            return jsonify({"success": False, "message": "该表达式未来没有可执行时间"})
+
+        return jsonify(
+            {
+                "success": True,
+                "data": {
+                    "crontab": crontab,
+                    "timezone": str(trigger.timezone),
+                    "items": next_fire_times,
+                },
+            }
+        )
+    except (TypeError, ValueError):
+        return jsonify(
+            {
+                "success": False,
+                "message": "Cron 表达式无效，请检查是否为 5 段格式",
+            }
+        )
 
 
 # 更新数据

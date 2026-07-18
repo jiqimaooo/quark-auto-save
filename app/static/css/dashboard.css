@@ -1105,6 +1105,123 @@ table.jsoneditor-tree > tbody > tr.jsoneditor-expandable:first-child {
   display: none;
 }
 
+/* Crontab 未来执行时间预览 */
+.qas-cron-preview {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--qas-surface-2);
+  border: 1px solid var(--qas-border);
+  border-radius: var(--qas-radius);
+}
+.qas-cron-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--qas-text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.qas-cron-preview-header i {
+  margin-right: 5px;
+  color: var(--qas-primary);
+}
+.qas-cron-preview-header small {
+  color: var(--qas-text-muted);
+  font-weight: 400;
+}
+.qas-cron-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.qas-cron-preview-list li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--qas-surface);
+  border: 1px solid var(--qas-border);
+  border-radius: var(--qas-radius-sm);
+}
+.qas-cron-preview-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  color: var(--qas-primary);
+  background: var(--qas-primary-soft);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 650;
+}
+.qas-cron-preview-list time {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  min-width: 0;
+  width: 100%;
+  line-height: 1.3;
+}
+.qas-cron-preview-date {
+  grid-column: 1 / 3;
+  overflow: hidden;
+  color: var(--qas-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qas-cron-preview-weekday {
+  grid-column: 1;
+  color: var(--qas-text-muted);
+  font-size: 11px;
+}
+.qas-cron-preview-list strong {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+  margin-left: 8px;
+  color: var(--qas-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+.qas-cron-preview-status,
+.qas-cron-preview-empty {
+  color: var(--qas-text-muted);
+  font-size: 12px;
+}
+.qas-cron-preview-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+}
+.qas-cron-preview-error {
+  justify-content: space-between;
+  color: var(--qas-danger);
+}
+.qas-cron-preview-error .btn-link {
+  height: auto;
+  padding: 2px 4px;
+}
+.qas-cron-preview-empty i {
+  margin-right: 5px;
+}
+
+@media (max-width: 575.98px) {
+  .qas-cron-preview-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
 /* =====================================================================
    Toast
    ===================================================================== */
